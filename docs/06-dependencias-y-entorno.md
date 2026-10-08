@@ -13,7 +13,6 @@ Versiones verificadas en octubre de 2026. El `pom.xml` de la raíz ya las incluy
 | Git | Reciente | Control de versiones |
 | DBeaver o pgAdmin 4 | Reciente | Consultar la base de datos |
 | OpenCode | Reciente | Asistente de desarrollo (lee `AGENTS.md`) |
-| Caddy, ngrok o cloudflared | Opcional | HTTPS para probar la cámara del celular |
 
 ## Dependencias Maven
 
@@ -65,13 +64,7 @@ Si el proyecto existente está en Spring Boot 3.5, ya no tiene soporte de códig
 
 ## Frontend
 
-| Librería | Uso | Nota |
-|---|---|---|
-| `barcode-detector` 3.x | Lectura con la cámara (RF-10) | Reemplaza a `html5-qrcode`: tiene su última versión de abril de 2023 y no recibe mantenimiento. `barcode-detector` implementa la API estándar `BarcodeDetector` y usa ZXing en WebAssembly cuando el navegador no la trae. |
-| Alpine.js (opcional) | Reactividad en la caja | Se copia a `static/js/vendor/` |
-| Chart.js (opcional) | Gráficas del panel y reportes | Se copia a `static/js/vendor/` |
-
-Las librerías se **copian a `static/js/vendor/`** en lugar de cargarse desde un CDN, para que el sistema funcione sin internet en la papelería. Para `barcode-detector`, hay que copiar también el archivo `.wasm` y comprobar la ruta con la que lo carga el módulo. Probar el escaneo con EAN-13, EAN-8, UPC-A, UPC-E, Code 128 y Code 39 (RF-12) en Chrome de Android y Safari de iOS antes de dar la fase 2 por terminada. Si algún formato falla, `html5-qrcode` sigue siendo un respaldo funcional.
+El frontend será desarrollado en un proyecto separado que consuma esta API REST. No se entregará desde este backend. Para el lector de códigos y la tirilla, en el frontend se usarán las convenciones especificadas en los RFs (lector tipo teclado, `barcode-detector` si se usa cámara, y formato COP con una sola función).
 
 ## Instalación de PostgreSQL con Docker
 

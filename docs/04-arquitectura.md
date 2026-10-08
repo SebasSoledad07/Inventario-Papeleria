@@ -2,7 +2,7 @@
 
 ## Decisión
 
-**Monolito modular, paquete por funcionalidad**, con Spring Boot 4 y PostgreSQL. Un solo JAR sirve la API REST y el frontend estático. No hay microservicios ni SPA separada: es un negocio de una sola sede, en red local.
+**API REST backend monolítico modular, paquete por funcionalidad**, con Spring Boot 4 y PostgreSQL. El frontend se desarrollará por separado y consumirá esta API. No hay microservicios.
 
 Capas dentro de cada módulo:
 
@@ -79,7 +79,7 @@ papeleria/
     │       ├── application.properties
     │       ├── application-dev.properties
     │       ├── db/migration/                   # V1, V2, ... (Flyway)
-    │       └── static/                         # frontend sin paso de compilación
+    │       └── static/                         # recursos estáticos (solo para desarrollo)
     │           ├── login.html, index.html, caja.html, productos.html, inventario.html, reportes.html
     │           ├── css/                        # app.css, tirilla.css (@page 58/80 mm)
     │           ├── js/                         # api.js, formato.js, escaner.js, caja.js
@@ -118,12 +118,7 @@ La dependencia va en un solo sentido: `venta → inventario → producto`. Si `p
 
 ## Frontend
 
-HTML + JavaScript sencillo (Alpine.js opcional) servido desde `static/`, consumiendo la API REST. Motivos: la caja necesita estado en el cliente (carrito, foco del lector, atajos de teclado), no hay paso de compilación y el despliegue es un solo JAR.
-
-- **Lector USB/Bluetooth (RF-09):** el lector actúa como teclado y termina con Enter. `escaner.js` acumula teclas rápidas y dispara la búsqueda al recibir Enter.
-- **Cámara (RF-10):** librería local en `static/js/vendor/` (ver [06-dependencias-y-entorno.md](06-dependencias-y-entorno.md)). Requiere HTTPS en producción (RNF-04).
-- **Tirilla (RF-26):** en la versión 1, vista HTML con CSS `@page` para 58/80 mm e impresión desde el navegador. PDF con OpenPDF como respaldo.
-- **Formato COP (RN-03):** una sola función en `formato.js`; ningún otro archivo formatea dinero.
+El frontend es una aplicación separada (HTML + JavaScript) que consume esta API REST. Solo quedan, de manera temporal, recursos estáticos mínimos en `src/main/resources/static/` para facilitar la validación de la API durante el desarrollo. Estos archivos **no** forman parte del alcance de despliegue obligatorio de este backend.
 
 ## Convenciones de código
 
