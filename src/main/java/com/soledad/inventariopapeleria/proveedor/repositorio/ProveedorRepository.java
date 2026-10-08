@@ -1,0 +1,18 @@
+package com.soledad.inventariopapeleria.proveedor.repositorio;
+
+import com.soledad.inventariopapeleria.proveedor.dominio.Proveedor;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
+
+    Optional<Proveedor> findByRazonSocial(String razonSocial);
+
+    Optional<Proveedor> findByNit(String nit);
+
+    List<Proveedor> findAllByActivoTrueOrderByRazonSocialAsc();
+
+    List<Proveedor> findAllByOrderByRazonSocialAsc();
+
+}

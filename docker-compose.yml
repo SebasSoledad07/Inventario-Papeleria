@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: papeleria-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NOMBRE:-papeleria}
+      POSTGRES_USER: ${DB_USUARIO:-postgres}
+      POSTGRES_PASSWORD: ${DB_CLAVE:-cambiar_esta_clave}
+    ports:
+      - "5432:5432"
+    volumes:
+      - papeleria_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USUARIO:-postgres} -d ${DB_NOMBRE:-papeleria}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  papeleria_db:
