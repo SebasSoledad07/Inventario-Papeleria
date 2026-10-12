@@ -3,13 +3,19 @@ package com.soledad.inventariopapeleria.inventario.servicio;
 import com.soledad.inventariopapeleria.auditoria.servicio.AuditoriaService;
 import com.soledad.inventariopapeleria.error.ErrorNegocio;
 import com.soledad.inventariopapeleria.error.RecursoNoEncontrado;
+import com.soledad.inventariopapeleria.inventario.api.MovimientoDto;
 import com.soledad.inventariopapeleria.inventario.dominio.MovimientoInventario;
 import com.soledad.inventariopapeleria.inventario.dominio.TipoMovimiento;
 import com.soledad.inventariopapeleria.inventario.repositorio.MovimientoInventarioRepository;
 import com.soledad.inventariopapeleria.inventario.repositorio.StockRepository;
 import com.soledad.inventariopapeleria.producto.dominio.Producto;
 import com.soledad.inventariopapeleria.producto.repositorio.ProductoRepository;
+import com.soledad.inventariopapeleria.usuario.dominio.Usuario;
+import com.soledad.inventariopapeleria.usuario.repositorio.UsuarioRepository;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,15 +30,18 @@ public class InventarioService {
     private final StockRepository stockRepository;
     private final ProductoRepository productoRepository;
     private final MovimientoInventarioRepository movimientoRepository;
+    private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoria;
 
     public InventarioService(StockRepository stockRepository,
                              ProductoRepository productoRepository,
                              MovimientoInventarioRepository movimientoRepository,
+                             UsuarioRepository usuarioRepository,
                              AuditoriaService auditoria) {
         this.stockRepository = stockRepository;
         this.productoRepository = productoRepository;
         this.movimientoRepository = movimientoRepository;
+        this.usuarioRepository = usuarioRepository;
         this.auditoria = auditoria;
     }
 
@@ -94,6 +103,24 @@ public class InventarioService {
         Producto actualizado = productoRepository.findById(productoId).orElseThrow();
         registrarMovimiento(actualizado, TipoMovimiento.AJUSTE_NEGATIVO, cantidad, null, motivo, usuarioId);
         auditoria.registrar(usuarioId, "AJUSTE_NEGATIVO", "Producto id " + productoId + ", cant " + cantidad + ", motivo: " + motivo);
+    }
+
+    /** Kardex de un producto (RF-17): todos sus movimientos, del mas antiguo al mas reciente. */
+    @Transactional(readOnly = true)
+    public List<MovimientoDto> consultarKardex(Long productoId) {
+        productoRepository.findById(productoId)
+                .orElseThrow(() -> new RecursoNoEncontrado("No existe el producto con id " + productoId + "."));
+        List<MovimientoInventario> movimientos = movimientoRepository.findByProductoIdOrderByFechaAsc(productoId);
+        Map<Long, String> nombres = nombresUsuarios(movimientos);
+        return movimientos.stream()
+                .map(movimiento -> MovimientoDto.desde(movimiento, nombres.get(movimiento.getUsuarioId())))
+                .toList();
+    }
+
+    private Map<Long, String> nombresUsuarios(List<MovimientoInventario> movimientos) {
+        List<Long> ids = movimientos.stream().map(MovimientoInventario::getUsuarioId).distinct().toList();
+        return usuarioRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Usuario::getId, Usuario::getNombre));
     }
 
     private void registrarMovimiento(Producto producto, TipoMovimiento tipo, int cantidad, String referencia, String motivo, Long usuarioId) {

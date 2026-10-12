@@ -22,4 +22,20 @@ class CalculadoraCostoPromedioTest {
                 0, new BigDecimal("900"));
         assertThat(nuevo).isEqualByComparingTo("800");
     }
+
+    @Test
+    void redondeaMedioPuntoHaciaArriba() {
+        // (1*1001 + 1*1000)/2 = 1000.5 -> 1001 con HALF_UP
+        BigDecimal nuevo = CalculadoraCostoPromedio.calcular(1, new BigDecimal("1001"),
+                1, new BigDecimal("1000"));
+        assertThat(nuevo).isEqualByComparingTo("1001");
+        assertThat(nuevo.scale()).isZero();
+    }
+
+    @Test
+    void entradaSobreStockCeroIniciaElCosto() {
+        BigDecimal nuevo = CalculadoraCostoPromedio.calcular(0, BigDecimal.ZERO,
+                5, new BigDecimal("900"));
+        assertThat(nuevo).isEqualByComparingTo("900");
+    }
 }

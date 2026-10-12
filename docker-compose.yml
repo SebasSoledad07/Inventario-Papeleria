@@ -4,15 +4,17 @@ services:
     container_name: papeleria-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NOMBRE:-papeleria}
-      POSTGRES_USER: ${DB_USUARIO:-postgres}
+      # Mismos defaults que application.properties: sin .env, compose y app conectan
+      POSTGRES_DB: ${DB_NOMBRE:-papeleria_db}
+      POSTGRES_USER: ${DB_USUARIO:-app_papel}
       POSTGRES_PASSWORD: ${DB_CLAVE:-cambiar_esta_clave}
     ports:
-      - "5432:5432"
+      # 5435 en el host para coincidir con el default de la app (jdbc:postgresql://localhost:5435)
+      - "5435:5432"
     volumes:
       - papeleria_db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USUARIO:-postgres} -d ${DB_NOMBRE:-papeleria}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USUARIO:-app_papel} -d ${DB_NOMBRE:-papeleria_db}"]
       interval: 5s
       timeout: 5s
       retries: 10
