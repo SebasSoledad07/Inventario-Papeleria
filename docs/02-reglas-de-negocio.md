@@ -37,6 +37,7 @@ Los identificadores RN-xx se usan en el código (comentarios, nombres de pruebas
 - **RN-22.** Los ajustes de inventario exigen un motivo: conteo físico, producto dañado, pérdida, vencimiento u otro (con descripción).
 - **RN-23.** El costo del producto se actualiza con **costo promedio ponderado** en cada entrada de mercancía: `nuevo_costo = (stock_actual × costo_actual + cantidad_entrada × costo_entrada) / (stock_actual + cantidad_entrada)`, redondeado al peso.
 - **RN-24.** Los servicios (fotocopias, impresiones, plastificados) no manejan stock.
+- **RN-46.** El conteo físico se realiza en una sola sesión: el estado vive en el navegador y, al término, las diferencias se aplican al stock en una sola transacción con el motivo "conteo físico" (RN-22).
 
 ## Stock bajo y productos por agotarse
 

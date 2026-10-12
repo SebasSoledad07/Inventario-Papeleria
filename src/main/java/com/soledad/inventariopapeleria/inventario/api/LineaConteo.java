@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Linea del conteo fisico (RF-18, D-3).
+ * Linea del conteo fisico (RF-18, RN-46).
  */
 public record LineaConteo(
         @NotNull(message = "El producto es obligatorio.")

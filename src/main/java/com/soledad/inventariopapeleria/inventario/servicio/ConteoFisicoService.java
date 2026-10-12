@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Conteo fisico (RF-18, D-3): el estado vive en el navegador y al terminar
+ * Conteo fisico (RF-18, RN-46): el estado vive en el navegador y al terminar
  * se genera un ajuste por cada diferencia entre lo contado y el stock, todo
  * en una sola transaccion. Motivo obligatorio (RN-22).
  */

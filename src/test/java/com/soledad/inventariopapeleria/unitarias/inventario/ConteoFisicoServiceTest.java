@@ -27,7 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Conteo fisico (RF-18, D-3): ajustes solo cuando hay diferencia, en un solo
+ * Conteo fisico (RF-18, RN-46): ajustes solo cuando hay diferencia, en un solo
  * lote y con el motivo obligatorio (RN-22).
  */
 @ExtendWith(MockitoExtension.class)

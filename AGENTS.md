@@ -7,12 +7,12 @@ API REST para un sistema de inventario y ventas de papelería en Colombia (COP).
 | Fase | Estado |
 |---|---|
 | **1. Base** | ✅ Completa: `usuario` (login por sesión HTTP `JSESSIONID` + BCrypt RN-43, roles `ADMIN`/`CAJERO`/`BODEGUERO`, `SecurityConfig`, `AdminInicialRunner` — D-4 lee `ADMIN_INICIAL_USUARIO`/`ADMIN_INICIAL_CLAVE` de entorno, si falta no crea nada), `configuracion`, `auditoria`, `compartido` (solo `Pesos`), `error`, categorías y proveedores. |
-| **2. Catálogo** | ◐ Parcial: `producto` (CRUD, historial de precios, búsqueda `unaccent`+`pg_trgm` RF-06), `codigo` (`NormalizadorCodigo` + `GeneradorCodigoInterno`, clases puras), `catalogo` (cliente Open Products Facts con `RestClient`). **Falta:** etiquetas y lectura por foto (ZXing está en el pom pero no hay clase que lo use). |
-| **3. Inventario** | ✅ Completa: `InventarioService` (`descontar`/`devolver`/`ajustar*`, kárdex, stock no negativo vía `UPDATE ... WHERE stock >= :cantidad`), `CalculadoraCostoPromedio` (pura), `CompraService` (RF-14/15, costo promedio ponderado RN-23, rechaza factura repetida), `ConteoFisicoService` (RF-18, D-3, ajustes con motivo `"conteo físico"`), `CompraController` (POST/GET `/api/inventario/compras`), GET `/api/inventario/productos/{id}/kardex`, POST `/api/inventario/conteo-fisico`. |
+| **2. Catálogo** | ✅ Backend completo: `producto` (CRUD, historial de precios, búsqueda `unaccent`+`pg_trgm` RF-06), `codigo` (`NormalizadorCodigo` RN-14 + `GeneradorCodigoInterno` RN-15, `LectorCodigoFoto` ZXing RF-11/12, `GeneradorEtiqueta` RF-04), `catalogo` (cliente Open Products Facts con `RestClient`). Endpoints `POST /api/codigos/decodificar` y `GET /api/codigos/{codigo}/etiqueta`. RF-09/10/13 (lector USB, cámara y feedback) son del frontend, por separado. |
+| **3. Inventario** | ✅ Completa: `InventarioService` (`descontar`/`devolver`/`ajustar*`, kárdex, stock no negativo vía `UPDATE ... WHERE stock >= :cantidad`), `CalculadoraCostoPromedio` (pura), `CompraService` (RF-14/15, costo promedio ponderado RN-23, rechaza factura repetida), `ConteoFisicoService` (RF-18, RN-46, ajustes con motivo `"conteo físico"`), `CompraController` (POST/GET `/api/inventario/compras`), GET `/api/inventario/productos/{id}/kardex`, POST `/api/inventario/conteo-fisico`. |
 | **4. Caja** | ◐ Parcial: dominio completo (`Venta`, `DetalleVenta`, `PagoVenta`, `Caja`, `Consecutivo`), `ConsecutivoService` (RN-31), `CalculadoraVenta` (pura). **Falta:** `VentaService`, `CajaService`, `TirillaService`, controllers y repos de venta/caja/pagos; `cliente` tiene solo la entidad. |
 | **5. Reportes** | ✖ No iniciada: no existe el módulo `reporte`. |
 
-- 89 clases en `src/main/java`, 28 tests verdes. Últimos 4 commits: esquemas de dominio/API para inventario, producto y venta.
+- 92 clases en `src/main/java`, 39 tests verdes. Últimos 4 commits: esquemas de dominio/API para inventario, producto y venta.
 - `V1__esquema_inicial.sql` ya crea **todo** el esquema (todas las fases: kárdex, compras, clientes, cajas, ventas, `consecutivos`) + datos iniciales de config + `f_unaccent`. `V2__vista_estado_stock.sql`. **No hay V3+ todavía.**
 - Paquete base: **`com.soledad.inventariopapeleria`** (no `com.papeleria.inventario`; `docs/04` aún muestra la ruta vieja).
 
@@ -59,15 +59,15 @@ API REST modular por funcionalidad bajo el paquete base; en cada módulo las cap
 
 ## Decisiones pendientes (docs/08)
 
-D-1 a D-6 NO están resueltas (D-4 tiene implementación provisional en `AdminInicialRunner`, marcada `// PENDIENTE-DECISION-4`). Si tu código las toca, marca la elección con `// PENDIENTE-DECISION-n` o pregunta. Al confirmarse pasan a `docs/02` como RN-xx y se borran de `docs/08`.
+D-1, D-2, D-4, D-5 y D-6 NO están resueltas (D-4 tiene implementación provisional en `AdminInicialRunner`, marcada `// PENDIENTE-DECISION-4`). **D-3 ya está resuelta** → RN-46 (conteo físico en una sola sesión). Si tu código toca una decisión pendiente, marca la elección con `// PENDIENTE-DECISION-n` o pregunta. Al confirmarse pasan a `docs/02` como RN-xx y se borran de `docs/08`.
 
 ## Plan paso a paso (docs/07 + docs/03)
 
 Orden obligatorio. Al terminar cada fase: criterios de aceptación de `docs/07` + pruebas unitarias/integración/arquitectura.
 
 1. **Fase 1 – Base (RF-08, RF-43 a RF-46):** ✅ hecha. **Una migración aplicada nunca se edita:** los cambios son `V3__...`, `V4__...`.
-2. **Fase 2 – Catálogo (RF-01 a RF-13):** módulos `producto`, `proveedor`, `codigo` (normalización RN-14, código interno EAN-13 RN-15), `catalogo` (Open Products Facts con timeout y falla suave RN-16), historial de precios (RN-07/08), búsqueda `unaccent`+`pg_trgm` (RF-06), **etiquetas y lectura de códigos (ZXing)**. Frontend por separado.
-3. **Fase 3 – Inventario (RF-14 a RF-18):** ✅ compras con costo promedio ponderado (RN-23), ajustes con motivo obligatorio (RN-22), kárdex (RN-20), conteo físico (D-3). Stock nunca negativo (RN-19). Servicios sin stock (RN-24).
+2. **Fase 2 – Catálogo (RF-01 a RF-13):** módulos `producto`, `proveedor`, `codigo` (normalización RN-14, código interno EAN-13 RN-15, **lectura de foto ZXing RF-11/12, etiquetas RF-04**), `catalogo` (Open Products Facts con timeout y falla suave RN-16), historial de precios (RN-07/08), búsqueda `unaccent`+`pg_trgm` (RF-06). Frontend por separado (RF-09/10/13).
+3. **Fase 3 – Inventario (RF-14 a RF-18):** ✅ compras con costo promedio ponderado (RN-23), ajustes con motivo obligatorio (RN-22), kárdex (RN-20), conteo físico (RN-46). Stock nunca negativo (RN-19). Servicios sin stock (RN-24).
 4. **Fase 4 – Caja (RF-19 a RF-29):** caja abierta obligatoria (RN-30/42), consecutivo sin saltos `ConsecutivoService` (RN-31, ✅), venta atómica en un solo `@Transactional` (RN-37), medios de pago y cambio (RN-34/35), tirilla, anulación con devolución (RN-38, restringida por D-2), descuentos con autorización ADMIN (RN-33, D-6).
 5. **Fase 5 – Reportes (RF-30 a RF-42):** módulo `reporte` con `JdbcClient` y las consultas de `docs/consultas-sql.md`, exportación Excel/PDF (OpenPDF: paquete `org.openpdf`, no `com.lowagie`), panel. Costos y utilidad solo ADMIN (RN-44).
 6. **Fase 6 (futura):** facturación electrónica DIAN. Fuera de la versión 1.

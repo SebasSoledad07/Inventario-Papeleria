@@ -20,14 +20,6 @@ Cuando una decisión se confirme, se convierte en una regla `RN-xx` en [02-regla
 
 **Alternativa.** Permitir la anulación posterior y registrarla como egreso en la caja abierta del día. Es más flexible pero complica el cuadre.
 
-## D-3. Conteo físico por sesiones (RF-18)
-
-**Problema.** El esquema no tiene tablas para el conteo físico.
-
-**Propuesta.** En la versión 1 el conteo se hace en **una sola sesión**: el estado del conteo vive en el navegador y, al terminar, `ConteoFisicoService` genera un ajuste (`AJUSTE_POSITIVO` o `AJUSTE_NEGATIVO`, motivo "conteo físico") por cada diferencia, en una sola transacción.
-
-**Si se necesitan varias sesiones o varias personas**, se agregan las tablas `conteos` y `detalle_conteo` en una migración nueva.
-
 ## D-4. Administrador inicial
 
 **Problema.** Sin un usuario no se puede iniciar sesión, y una contraseña fija dentro de una migración es un riesgo.
