@@ -14,7 +14,7 @@ Todos los valores monetarios se manejan en **pesos colombianos (COP)**.
 |---|---|---|
 | Administrador | Dueño o encargado de la papelería | Todo: productos, precios, usuarios, reportes, anulaciones, configuración |
 | Cajero | Persona que atiende la caja | Vender, consultar precios, abrir y cerrar su caja |
-| Bodeguero | Persona que recibe mercancía | Registrar entradas de mercancía, ajustar inventario, imprimir etiquetas |
+| Bodeguero | Persona que recibe mercancía | Registrar entradas de mercancía, ajustar inventario, imprimir etiquetas, crear y editar productos y proveedores |
 
 ---
 

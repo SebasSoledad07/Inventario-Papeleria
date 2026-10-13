@@ -62,10 +62,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/usuario/**").hasRole("ADMIN")
                         .requestMatchers("/api/configuracion/**").hasRole("ADMIN")
                         .requestMatchers("/api/auditoria/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/categoria/**", "/api/proveedor/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/categoria/**", "/api/proveedor/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/categoria/**", "/api/proveedor/**").hasRole("ADMIN")
-                        .requestMatchers("/api/categoria/**", "/api/proveedor/**").authenticated()
+                        // Categorias: solo ADMIN las administra (RF-08)
+                        .requestMatchers(HttpMethod.POST, "/api/categoria/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/categoria/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/categoria/**").hasRole("ADMIN")
+                        // Productos y proveedores: ADMIN y BODEGUERO crean, editan e inactivan
+                        .requestMatchers(HttpMethod.POST, "/api/producto/**", "/api/proveedor/**").hasAnyRole("ADMIN", "BODEGUERO")
+                        .requestMatchers(HttpMethod.PUT, "/api/producto/**", "/api/proveedor/**").hasAnyRole("ADMIN", "BODEGUERO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/producto/**", "/api/proveedor/**").hasAnyRole("ADMIN", "BODEGUERO")
+                        // Inventario: entradas, ajustes, conteo y kardex solo ADMIN y BODEGUERO
+                        .requestMatchers("/api/inventario/**").hasAnyRole("ADMIN", "BODEGUERO")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

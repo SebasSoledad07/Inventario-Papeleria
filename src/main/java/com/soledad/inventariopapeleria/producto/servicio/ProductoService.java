@@ -90,24 +90,95 @@ public class ProductoService {
         return productoRepository.findAllByActivoTrueOrderByNombreAsc().stream().map(ProductoDto::desde).toList();
     }
 
+    /**
+     * Edita todos los datos del producto y, si cambia, su precio con historial
+     * (RF-05, RN-07). El stock no se toca aqui: solo lo modifica inventario
+     * (RN-20).
+     */
+    @Transactional
+    public ProductoDto actualizar(Long id, ProductoRequest req, Long actorId) {
+        Producto p = buscar(id);
+        p.setCodigoBarras(resolverCodigoEdicion(req.codigoBarras(), p));
+        p.setNombre(req.nombre().trim());
+        p.setMarca(req.marca() != null ? req.marca().trim() : null);
+        p.setCategoria(categoriaRepository.findById(req.categoriaId())
+                .orElseThrow(() -> new RecursoNoEncontrado("No existe la categoria con id " + req.categoriaId() + ".")));
+        p.setProveedor(null);
+        if (req.proveedorId() != null) {
+            p.setProveedor(proveedorRepository.findById(req.proveedorId())
+                    .orElseThrow(() -> new RecursoNoEncontrado("No existe el proveedor con id " + req.proveedorId() + ".")));
+        }
+        p.setUnidad(Unidad.valueOf(req.unidad().trim().toUpperCase()));
+        p.setTarifaIva(TarifaIva.desde(req.tarifaIva()));
+        aplicarCambioPrecio(p, req.precioVenta(), actorId);
+        p.setCosto(req.costo());
+        p.setStockMinimo(req.stockMinimo());
+        p.setActualizadoEn(Instant.now());
+        Producto guardado = productoRepository.save(p);
+        auditoria.registrar(actorId, "EDITAR_PRODUCTO", "Producto id " + id);
+        return ProductoDto.desde(guardado);
+    }
+
     @Transactional
     public ProductoDto actualizarPrecio(Long id, BigDecimal nuevoPrecio, Long actorId) {
-        Producto p = productoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontrado("No existe el producto con id " + id + "."));
-        BigDecimal anterior = p.getPrecioVenta();
-        if (anterior.compareTo(nuevoPrecio) != 0) {
-            p.setPrecioVenta(nuevoPrecio);
-            p.setActualizadoEn(Instant.now());
-            HistorialPrecios h = new HistorialPrecios();
-            h.setProducto(p);
-            h.setPrecioAnterior(anterior);
-            h.setPrecioNuevo(nuevoPrecio);
-            h.setUsuarioId(actorId);
-            h.setFecha(Instant.now());
-            historialRepository.save(h);
-            auditoria.registrar(actorId, "ACTUALIZAR_PRECIO", "Producto id " + id);
-        }
+        Producto p = buscar(id);
+        aplicarCambioPrecio(p, nuevoPrecio, actorId);
         return ProductoDto.desde(p);
+    }
+
+    /**
+     * Inactiva el producto (RN-17). No se elimina fisicamente: los productos con
+     * ventas o movimientos se conservan para los reportes historicos (RF-07).
+     */
+    @Transactional
+    public ProductoDto inactivar(Long id, Long actorId) {
+        Producto p = buscar(id);
+        p.setActivo(false);
+        p.setActualizadoEn(Instant.now());
+        auditoria.registrar(actorId, "INACTIVAR_PRODUCTO", "Producto id " + id);
+        return ProductoDto.desde(productoRepository.save(p));
+    }
+
+    @Transactional
+    public ProductoDto activar(Long id, Long actorId) {
+        Producto p = buscar(id);
+        p.setActivo(true);
+        p.setActualizadoEn(Instant.now());
+        auditoria.registrar(actorId, "ACTIVAR_PRODUCTO", "Producto id " + id);
+        return ProductoDto.desde(productoRepository.save(p));
+    }
+
+    private void aplicarCambioPrecio(Producto p, BigDecimal nuevoPrecio, Long actorId) {
+        BigDecimal anterior = p.getPrecioVenta();
+        if (anterior != null && anterior.compareTo(nuevoPrecio) == 0) {
+            return;
+        }
+        p.setPrecioVenta(nuevoPrecio);
+        p.setActualizadoEn(Instant.now());
+        HistorialPrecios h = new HistorialPrecios();
+        h.setProducto(p);
+        h.setPrecioAnterior(anterior);
+        h.setPrecioNuevo(nuevoPrecio);
+        h.setUsuarioId(actorId);
+        h.setFecha(Instant.now());
+        historialRepository.save(h);
+        auditoria.registrar(actorId, "ACTUALIZAR_PRECIO", "Producto id " + p.getId());
+    }
+
+    private Producto buscar(Long id) {
+        return productoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontrado("No existe el producto con id " + id + "."));
+    }
+
+    private String resolverCodigoEdicion(String codigoNuevo, Producto actual) {
+        if (codigoNuevo == null || codigoNuevo.isBlank()) {
+            return actual.getCodigoBarras();
+        }
+        String c = NormalizadorCodigo.normalizar(codigoNuevo);
+        if (!c.equals(actual.getCodigoBarras()) && productoRepository.existsByCodigoBarras(c)) {
+            throw new ErrorNegocio("Ya existe un producto con el codigo de barras '" + c + "'.");
+        }
+        return c;
     }
 
     private String resolverCodigo(String codigo) {

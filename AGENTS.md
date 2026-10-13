@@ -12,7 +12,7 @@ API REST para un sistema de inventario y ventas de papelería en Colombia (COP).
 | **4. Caja** | ◐ Parcial: dominio completo (`Venta`, `DetalleVenta`, `PagoVenta`, `Caja`, `Consecutivo`), `ConsecutivoService` (RN-31), `CalculadoraVenta` (pura). **Falta:** `VentaService`, `CajaService`, `TirillaService`, controllers y repos de venta/caja/pagos; `cliente` tiene solo la entidad. |
 | **5. Reportes** | ✖ No iniciada: no existe el módulo `reporte`. |
 
-- 92 clases en `src/main/java`, 39 tests verdes. Últimos 4 commits: esquemas de dominio/API para inventario, producto y venta.
+- 92 clases en `src/main/java`; 12 archivos de test (33 `@Test` + 1 `@ParameterizedTest`) repartidos en `unitarias`, `arquitectura` y el `@SpringBootTest` de contexto. 6 commits; el último añade el conteo físico en una sola sesión (RN-46).
 - `V1__esquema_inicial.sql` ya crea **todo** el esquema (todas las fases: kárdex, compras, clientes, cajas, ventas, `consecutivos`) + datos iniciales de config + `f_unaccent`. `V2__vista_estado_stock.sql`. **No hay V3+ todavía.**
 - Paquete base: **`com.soledad.inventariopapeleria`** (no `com.papeleria.inventario`; `docs/04` aún muestra la ruta vieja).
 
@@ -28,7 +28,8 @@ API REST para un sistema de inventario y ventas de papelería en Colombia (COP).
 - `docker-compose.yml` mapea `5435:5432` y crea `papeleria_db`/`app_papel`, igual que el default de la app (`jdbc:postgresql://localhost:5435/papeleria_db`). El **password** default del compose es un placeholder: para conectar copia `.env.example` → `.env` (o define `DB_CLAVE`), porque NO coincide con el default de `application.properties`.
 - `application.properties` y `.env.example` traen credenciales por defecto en claro (variables `DB_*`); nunca pongas credenciales reales en código. `.env.example` está sin trackear en git.
 - **Springdoc** (dependencia `springdoc-openapi-starter-webmvc-ui` 3.1.1) expone Swagger UI público en `/swagger-ui.html` y el spec en `/v3/api-docs` (permitidos en `SecurityConfig`; para pruebas del frontend).
-- Auth es **por sesión** (no JWT), CSRF desactivado, errores de autenticación en JSON. `/api/auth/login|logout` público; `/api/usuario`, `/api/configuracion`, `/api/auditoria` solo `ADMIN`.
+- `spring-boot-starter-actuator` está en el pom, pero **sin** endpoints configurados ni en `SecurityConfig`: solo queda `/actuator/health` y cae en `anyRequest().authenticated()` (no es público).
+- Auth es **por sesión** (no JWT), CSRF desactivado, errores de autenticación en JSON. `/api/auth/login|logout` público. Matriz de permisos en `SecurityConfig`: `ADMIN` todo; `BODEGUERO` escribe productos/proveedores (POST/PUT/DELETE) y todo `/api/inventario/**`; `ADMIN` es el único que administra categorías (`/api/categoria/**` POST/PUT/DELETE) y `/api/usuario|configuracion|auditoria`. Lecturas (GET) de producto/proveedor/categoría para cualquier autenticado. Ventas/caja aún sin controller (Fase 4: quedará `ADMIN`+`CAJERO`).
 
 ## Gotchas de Spring Boot 4
 

@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,6 +51,21 @@ public class ProductoController {
     public ProductoDto actualizarPrecio(@PathVariable Long id, @RequestBody Map<String, BigDecimal> body) {
         BigDecimal nuevo = body.get("precioVenta");
         return servicio.actualizarPrecio(id, nuevo, actor());
+    }
+
+    @PutMapping("/{id}")
+    public ProductoDto actualizar(@PathVariable Long id, @Valid @RequestBody ProductoRequest req) {
+        return servicio.actualizar(id, req, actor());
+    }
+
+    @DeleteMapping("/{id}")
+    public ProductoDto inactivar(@PathVariable Long id) {
+        return servicio.inactivar(id, actor());
+    }
+
+    @PutMapping("/{id}/activar")
+    public ProductoDto activar(@PathVariable Long id) {
+        return servicio.activar(id, actor());
     }
 
     private Long actor() {
