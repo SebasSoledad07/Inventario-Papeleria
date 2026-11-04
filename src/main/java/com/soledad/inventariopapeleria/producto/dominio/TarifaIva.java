@@ -19,6 +19,15 @@ public enum TarifaIva {
         return valor;
     }
 
+    /** Porcentaje de IVA aplicable (0 para exento/excluido). */
+    public java.math.BigDecimal porcentaje() {
+        try {
+            return new java.math.BigDecimal(valor);
+        } catch (NumberFormatException e) {
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+
     public static TarifaIva desde(String valor) {
         if (valor == null) {
             return EXCLUIDO;

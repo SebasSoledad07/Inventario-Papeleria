@@ -72,6 +72,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/producto/**", "/api/proveedor/**").hasAnyRole("ADMIN", "BODEGUERO")
                         // Inventario: entradas, ajustes, conteo y kardex solo ADMIN y BODEGUERO
                         .requestMatchers("/api/inventario/**").hasAnyRole("ADMIN", "BODEGUERO")
+                        // Caja y ventas: solo ADMIN y CAJERO
+                        .requestMatchers("/api/caja/**", "/api/venta/**").hasAnyRole("ADMIN", "CAJERO")
+                        // Clientes: ADMIN y CAJERO
+                        .requestMatchers("/api/cliente/**").hasAnyRole("ADMIN", "CAJERO")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

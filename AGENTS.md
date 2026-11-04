@@ -1,79 +1,86 @@
 # AGENTS.md
 
-API REST para un sistema de inventario y ventas de papelería en Colombia (COP). Backend monolítico modular con Spring Boot 4.1 + Java 21 + PostgreSQL 16. El frontend se desarrollará por separado (no se sirve desde este proyecto; `src/main/resources/static/` está vacío). La **fuente de verdad es `docs/`**: léela antes de implementar cualquier cosa. **No inventes reglas de negocio.**
+API REST para inventario y ventas de papelería en Colombia (COP). Backend monolítico modular: Spring Boot 4.1 + Java 21 + PostgreSQL 16. Frontend aparte (este proyecto no sirve estáticos). **Fuente de verdad: `docs/`** — léela antes de implementar. No inventes reglas de negocio.
 
-## Estado real (verificado en el código)
+## Estado actual (verificado en código)
 
 | Fase | Estado |
 |---|---|
-| **1. Base** | ✅ Completa: `usuario` (login por sesión HTTP `JSESSIONID` + BCrypt RN-43, roles `ADMIN`/`CAJERO`/`BODEGUERO`, `SecurityConfig`, `AdminInicialRunner` — D-4 lee `ADMIN_INICIAL_USUARIO`/`ADMIN_INICIAL_CLAVE` de entorno, si falta no crea nada), `configuracion`, `auditoria`, `compartido` (solo `Pesos`), `error`, categorías y proveedores. |
-| **2. Catálogo** | ✅ Backend completo: `producto` (CRUD, historial de precios, búsqueda `unaccent`+`pg_trgm` RF-06), `codigo` (`NormalizadorCodigo` RN-14 + `GeneradorCodigoInterno` RN-15, `LectorCodigoFoto` ZXing RF-11/12, `GeneradorEtiqueta` RF-04), `catalogo` (cliente Open Products Facts con `RestClient`). Endpoints `POST /api/codigos/decodificar` y `GET /api/codigos/{codigo}/etiqueta`. RF-09/10/13 (lector USB, cámara y feedback) son del frontend, por separado. |
-| **3. Inventario** | ✅ Completa: `InventarioService` (`descontar`/`devolver`/`ajustar*`, kárdex, stock no negativo vía `UPDATE ... WHERE stock >= :cantidad`), `CalculadoraCostoPromedio` (pura), `CompraService` (RF-14/15, costo promedio ponderado RN-23, rechaza factura repetida), `ConteoFisicoService` (RF-18, RN-46, ajustes con motivo `"conteo físico"`), `CompraController` (POST/GET `/api/inventario/compras`), GET `/api/inventario/productos/{id}/kardex`, POST `/api/inventario/conteo-fisico`. |
-| **4. Caja** | ◐ Parcial: dominio completo (`Venta`, `DetalleVenta`, `PagoVenta`, `Caja`, `Consecutivo`), `ConsecutivoService` (RN-31), `CalculadoraVenta` (pura). **Falta:** `VentaService`, `CajaService`, `TirillaService`, controllers y repos de venta/caja/pagos; `cliente` tiene solo la entidad. |
-| **5. Reportes** | ✖ No iniciada: no existe el módulo `reporte`. |
+| 1. Base | ✅ Completa: `usuario` (login por sesión `JSESSIONID` + BCrypt RN-43, roles `ADMIN`/`CAJERO`/`BODEGUERO`, `SecurityConfig`, `AdminInicialRunner` D-4), `configuracion`, `auditoria`, `compartido` (`Pesos`), `error`, categorías, proveedores. |
+| 2. Catálogo | ✅ Backend completo: `producto` (CRUD + activar/inactivar, historial de precios, búsqueda `unaccent`+`pg_trgm` RF-06), `codigo` (normalización RN-14, EAN-13 RN-15, lector ZXing RF-11/12, etiquetas RF-04), `catalogo` (Open Products Facts, falla suave RN-16). Endpoints `POST /api/codigos/decodificar`, `GET /api/codigos/{codigo}/etiqueta`. |
+| 3. Inventario | ✅ Completa: `InventarioService` (`descontar`/`devolver`/`ajustar*`, kárdex, stock no negativo vía `UPDATE ... WHERE stock >= :cantidad`), `CalculadoraCostoPromedio`, `CompraService` (RF-14/15, costo promedio ponderado RN-23, rechaza factura repetida), `ConteoFisicoService` (RF-18, RN-46), `CompraController`, kárdex, conteo físico. |
+| 4. Caja | ✅ Backend completo: dominio (`Venta`, `DetalleVenta`, `PagoVenta`, `Caja`, `Consecutivo`), `ConsecutivoService` (RN-31), `CalculadoraVenta`, `VentaService` (confirmar/anular, IVA RN-11, descuentos RN-33/D-1, pagos RN-34/35, stock RN-37), `CajaService` (apertura/cierre/cuadre RN-40/41/42), `TirillaService` (HTML @page D-5), `VentaController`, `CajaController`, repos de venta/caja/pagos, `ClienteService`/controller. |
+| 5. Reportes | ✖ No iniciada: no existe módulo `reporte`. |
 
-- 92 clases en `src/main/java`; 12 archivos de test (33 `@Test` + 1 `@ParameterizedTest`) repartidos en `unitarias`, `arquitectura` y el `@SpringBootTest` de contexto. 6 commits; el último añade el conteo físico en una sola sesión (RN-46).
-- `V1__esquema_inicial.sql` ya crea **todo** el esquema (todas las fases: kárdex, compras, clientes, cajas, ventas, `consecutivos`) + datos iniciales de config + `f_unaccent`. `V2__vista_estado_stock.sql`. **No hay V3+ todavía.**
-- Paquete base: **`com.soledad.inventariopapeleria`** (no `com.papeleria.inventario`; `docs/04` aún muestra la ruta vieja).
+- 92 clases en `src/main/java`; 12 archivos de test (38 `@Test` + 1 `@ParameterizedTest`). 7 commits; el último añade gestión de producto (actualizar/activar/inactivar) y roles de seguridad.
+- `V1__esquema_inicial.sql` crea **todo** el esquema (todas las fases) + config inicial + `f_unaccent`. `V2__vista_estado_stock.sql`. **No hay V3+**.
+- Paquete base: `com.soledad.inventariopapeleria` (no `com.papeleria.inventario`; `docs/04` aún muestra la ruta vieja).
+
+## Qué falta por desarrollar (orden obligatorio docs/07)
+
+1. **Fase 5 – Reportes (RF-30 a RF-42):** módulo `reporte` con `JdbcClient` y las consultas de `docs/consultas-sql.md`, exportación Excel/PDF (OpenPDF: paquete `org.openpdf`), panel. Costos y utilidad solo `ADMIN` (RN-44).
+2. **Transversal:** paquete `integracion` con Testcontainers aún no existe pese a estar en el pom; pruebas con tablas de casos para IVA (RN-11), costo promedio (RN-23), consecutivo (RN-31) y descuentos (D-1).
+3. **Decisiones pendientes:** D-1, D-2, D-4 (implementación provisional en `AdminInicialRunner`), D-5, D-6. D-3 resuelta → RN-46. (D-1, D-2, D-5 se implementaron siguiendo la propuesta; marcar `// PENDIENTE-DECISION-n` hasta confirmación.)
+4. **Desviación a resolver:** `ProductoService.crear` asigna `stockInicial` directamente (escribe stock desde `producto`); decidir si debe pasar por `InventarioService` (RN-20).
 
 ## Comandos (Windows, usa el wrapper)
 
 - `./mvnw spring-boot:run` — arrancar (requiere PostgreSQL arriba).
-- `./mvnw test` — **no requiere Docker**: el único test de contexto (`@SpringBootTest`) conecta a la BD configurada (por defecto `localhost:5435`). Las dependencias Testcontainers están en el pom pero **no hay aún tests de `integracion` que las usen**.
+- `./mvnw test` — no requiere Docker: el `@SpringBootTest` de contexto conecta a la BD configurada (por defecto `localhost:5435`).
 - `./mvnw -DskipTests package` — generar el JAR.
-- No hay linter configurado (ni checkstyle ni spotless); la verificación es compilación + ArchUnit + tests.
+- No hay linter (ni checkstyle/spotless); verificación = compilación + ArchUnit + tests.
+- BD: `docker-compose.yml` mapea `5435:5432` (`papeleria_db`/`app_papel`). Copia `.env.example` → `.env` (o define `DB_CLAVE`): el password del compose no coincide con el default de `application.properties`.
 
 ## Gotchas del entorno
 
-- `docker-compose.yml` mapea `5435:5432` y crea `papeleria_db`/`app_papel`, igual que el default de la app (`jdbc:postgresql://localhost:5435/papeleria_db`). El **password** default del compose es un placeholder: para conectar copia `.env.example` → `.env` (o define `DB_CLAVE`), porque NO coincide con el default de `application.properties`.
-- `application.properties` y `.env.example` traen credenciales por defecto en claro (variables `DB_*`); nunca pongas credenciales reales en código. `.env.example` está sin trackear en git.
-- **Springdoc** (dependencia `springdoc-openapi-starter-webmvc-ui` 3.1.1) expone Swagger UI público en `/swagger-ui.html` y el spec en `/v3/api-docs` (permitidos en `SecurityConfig`; para pruebas del frontend).
-- `spring-boot-starter-actuator` está en el pom, pero **sin** endpoints configurados ni en `SecurityConfig`: solo queda `/actuator/health` y cae en `anyRequest().authenticated()` (no es público).
-- Auth es **por sesión** (no JWT), CSRF desactivado, errores de autenticación en JSON. `/api/auth/login|logout` público. Matriz de permisos en `SecurityConfig`: `ADMIN` todo; `BODEGUERO` escribe productos/proveedores (POST/PUT/DELETE) y todo `/api/inventario/**`; `ADMIN` es el único que administra categorías (`/api/categoria/**` POST/PUT/DELETE) y `/api/usuario|configuracion|auditoria`. Lecturas (GET) de producto/proveedor/categoría para cualquier autenticado. Ventas/caja aún sin controller (Fase 4: quedará `ADMIN`+`CAJERO`).
+- `application.properties` y `.env.example` traen credenciales por defecto en claro (`DB_*`); nunca pongas credenciales reales en código. `.env.example` está sin trackear.
+- Springdoc expone Swagger UI público en `/swagger-ui.html` y spec en `/v3/api-docs` (permitidos en `SecurityConfig`).
+- Actuator en el pom pero sin endpoints configurados ni en `SecurityConfig`: solo `/actuator/health`, cae en `anyRequest().authenticated()` (no público).
+- Auth por sesión (no JWT), CSRF desactivado, errores de auth en JSON. `/api/auth/login|logout` público. Matriz: `ADMIN` todo; `BODEGUERO` escribe productos/proveedores (POST/PUT/DELETE) y todo `/api/inventario/**`; `ADMIN` único que administra categorías (`/api/categoria/**` POST/PUT/DELETE) y `/api/usuario|configuracion|auditoria`. Lecturas (GET) de producto/proveedor/categoría para cualquier autenticado.
 
 ## Gotchas de Spring Boot 4
 
-- El starter web es `spring-boot-starter-webmvc` (ya no `starter-web`).
-- Flyway necesita `spring-boot-starter-flyway` + `flyway-database-postgresql` (runtime) para auto-configurarse.
-- Jackson 3: las clases están en `tools.jackson.*`; las anotaciones (`@JsonProperty`) siguen en `com.fasterxml.jackson.annotation`.
+- Starter web: `spring-boot-starter-webmvc` (no `starter-web`).
+- Flyway: `spring-boot-starter-flyway` + `flyway-database-postgresql` (runtime).
+- Jackson 3: clases en `tools.jackson.*`; anotaciones (`@JsonProperty`) siguen en `com.fasterxml.jackson.annotation`.
 - Testcontainers 2.x: artefactos con prefijo `testcontainers-`, clase `org.testcontainers.postgresql.PostgreSQLContainer`.
-- `pom.xml` tuvo dependencias duplicadas corregidas; evita añadir más duplicados.
+- `pom.xml` tuvo dependencias duplicadas corregidas; evita añadir más.
 
 ## Arquitectura (docs/04) — obligatorio
 
-API REST modular por funcionalidad bajo el paquete base; en cada módulo las capas `api (Controller+DTO) → servicio (@Transactional) → dominio → repositorio`.
+Modular por funcionalidad bajo el paquete base; capas `api (Controller+DTO) → servicio (@Transactional) → dominio → repositorio`.
 
-- Sin ciclos de dependencia: `venta → inventario → producto`. `producto` NUNCA usa `inventario`/`venta`; `reporte` solo lee por SQL (`JdbcClient`, sin JPA).
-- **`productos.stock` solo lo modifica el módulo `inventario`** (RN-20): `InventarioService` + `StockRepository` con `UPDATE ... WHERE stock >= :cantidad` (RN-19). **Desviación actual:** `ProductoService.crear` asigna `stockInicial` directamente (escribe stock desde `producto`). Decidir si debe pasar por `InventarioService`.
-- Reglas de negocio SOLO en servicios y clases puras; los controladores no calculan, los repositorios no deciden.
-- Las dependencias se verifican con **ArchUnit** en `test/.../arquitectura/` (3 reglas: `producto` no usa `inventario`/`venta`; `venta` no toca `StockRepository`; `reporte` no usa servicios ajenos). Saltársela falla el build.
+- Sin ciclos: `venta → inventario → producto`. `producto` NUNCA usa `inventario`/`venta`; `reporte` solo lee por SQL (`JdbcClient`, sin JPA).
+- `productos.stock` solo lo modifica `inventario` (RN-20): `InventarioService` + `StockRepository` con `UPDATE ... WHERE stock >= :cantidad` (RN-19).
+- Reglas de negocio SOLO en servicios y clases puras; controladores no calculan, repositorios no deciden.
+- Dependencias verificadas con ArchUnit en `test/.../arquitectura/` (3 reglas). Saltársela falla el build.
 
 ## Código (docs/04 + skills en `.agents/skills/`)
 
-- Nombres y mensajes en español de Colombia (RNF-03): `VentaService`, `confirmar`, `detalle_venta`. Los RN-xx se usan en comentarios, nombres de pruebas y mensajes de commit. **No renumerar.**
-- Seguir `.agents/skills/java-coding-standards/SKILL.md` (inmutabilidad, `record`, streams cortos, `Optional` en `find*`, excepciones propias, log SLF4J) y `.agents/skills/java-springboot/SKILL.md` (inyección por constructor con campos `final`, Javadoc según `.agents/skills/java-docs/SKILL.md`).
-- DTOs como `record`; las entidades JPA nunca salen por la API.
+- Nombres y mensajes en español de Colombia (RNF-03). Los RN-xx se usan en comentarios, pruebas y commits. No renumerar.
+- Seguir `.agents/skills/java-coding-standards/SKILL.md`, `java-springboot/SKILL.md`, `java-docs/SKILL.md`.
+- DTOs como `record`; entidades JPA nunca salen por la API.
 - Dinero: `BigDecimal` escala 0 o `long`, nunca `double`/`float` (RN-02). Formato es-CO `$ 12.500` en `compartido.Pesos`, una sola función (RN-03).
-- Valores fijos como `enum` con `@Enumerated(EnumType.STRING)`, coherentes con los `CHECK` del esquema (roles, unidad, tarifa_iva, tipo movimiento, medio pago, estado).
-- Errores de negocio: excepciones propias (`ErrorNegocio`, `RecursoNoEncontrado`) traducidas a HTTP en el módulo `error/` (`GlobalHandler`).
-- Fechas solo en `America/Bogota` (RN-39), en JVM, Hibernate (`hibernate.jdbc.time_zone`) y Jackson (`spring.jackson.time-zone`); entidades usan `Instant`.
+- Valores fijos como `enum` con `@Enumerated(EnumType.STRING)`, coherentes con los `CHECK` del esquema.
+- Errores de negocio: `ErrorNegocio`/`RecursoNoEncontrado` traducidos a HTTP en `error/` (`GlobalHandler`).
+- Fechas solo en `America/Bogota` (RN-39) en JVM, Hibernate (`hibernate.jdbc.time_zone`) y Jackson (`spring.jackson.time-zone`); entidades usan `Instant`.
 
 ## Decisiones pendientes (docs/08)
 
-D-1, D-2, D-4, D-5 y D-6 NO están resueltas (D-4 tiene implementación provisional en `AdminInicialRunner`, marcada `// PENDIENTE-DECISION-4`). **D-3 ya está resuelta** → RN-46 (conteo físico en una sola sesión). Si tu código toca una decisión pendiente, marca la elección con `// PENDIENTE-DECISION-n` o pregunta. Al confirmarse pasan a `docs/02` como RN-xx y se borran de `docs/08`.
+D-1, D-2, D-4, D-5, D-6 NO resueltas. Si tu código toca una, marca `// PENDIENTE-DECISION-n` o pregunta. Al confirmarse pasan a `docs/02` como RN-xx y se borran de `docs/08`.
 
-## Plan paso a paso (docs/07 + docs/03)
+## Plan (docs/07 + docs/03)
 
-Orden obligatorio. Al terminar cada fase: criterios de aceptación de `docs/07` + pruebas unitarias/integración/arquitectura.
+Orden obligatorio. Al terminar cada fase: criterios de aceptación de `docs/07` + pruebas.
 
-1. **Fase 1 – Base (RF-08, RF-43 a RF-46):** ✅ hecha. **Una migración aplicada nunca se edita:** los cambios son `V3__...`, `V4__...`.
-2. **Fase 2 – Catálogo (RF-01 a RF-13):** módulos `producto`, `proveedor`, `codigo` (normalización RN-14, código interno EAN-13 RN-15, **lectura de foto ZXing RF-11/12, etiquetas RF-04**), `catalogo` (Open Products Facts con timeout y falla suave RN-16), historial de precios (RN-07/08), búsqueda `unaccent`+`pg_trgm` (RF-06). Frontend por separado (RF-09/10/13).
-3. **Fase 3 – Inventario (RF-14 a RF-18):** ✅ compras con costo promedio ponderado (RN-23), ajustes con motivo obligatorio (RN-22), kárdex (RN-20), conteo físico (RN-46). Stock nunca negativo (RN-19). Servicios sin stock (RN-24).
-4. **Fase 4 – Caja (RF-19 a RF-29):** caja abierta obligatoria (RN-30/42), consecutivo sin saltos `ConsecutivoService` (RN-31, ✅), venta atómica en un solo `@Transactional` (RN-37), medios de pago y cambio (RN-34/35), tirilla, anulación con devolución (RN-38, restringida por D-2), descuentos con autorización ADMIN (RN-33, D-6).
-5. **Fase 5 – Reportes (RF-30 a RF-42):** módulo `reporte` con `JdbcClient` y las consultas de `docs/consultas-sql.md`, exportación Excel/PDF (OpenPDF: paquete `org.openpdf`, no `com.lowagie`), panel. Costos y utilidad solo ADMIN (RN-44).
-6. **Fase 6 (futura):** facturación electrónica DIAN. Fuera de la versión 1.
+1. Fase 1 – Base: ✅ hecha.
+2. Fase 2 – Catálogo: ✅ backend completo (frontend por separado RF-09/10/13).
+3. Fase 3 – Inventario: ✅ completo.
+4. Fase 4 – Caja: ✅ backend completo (ver tabla de estado).
+5. Fase 5 – Reportes: ✖ no iniciada.
+6. Fase 6 (futura): facturación electrónica DIAN (fuera de v1).
 
 ## Pruebas
 
-- Paquetes actuales: `unitarias` (clases puras, sin Spring), `arquitectura` (ArchUnit), y el `@SpringBootTest` de contexto (requiere la BD real arriba). **Aún no existe el paquete `integracion` con Testcontainers** pese a lo que dicen la doc y el pom.
-- Registros críticos (IVA RN-11, costo promedio RN-23, consecutivo RN-31, descuentos D-1) requieren pruebas con tablas de casos (descuentos que no dividen exacto, etc.), no solo el caso feliz.
+- Paquetes actuales: `unitarias` (clases puras, sin Spring), `arquitectura` (ArchUnit) y el `@SpringBootTest` de contexto (requiere BD real arriba). Aún no existe `integracion` con Testcontainers.
+- Registros críticos (IVA RN-11, costo promedio RN-23, consecutivo RN-31, descuentos D-1) requieren pruebas con tablas de casos, no solo caso feliz.
