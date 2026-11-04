@@ -76,6 +76,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/caja/**", "/api/venta/**").hasAnyRole("ADMIN", "CAJERO")
                         // Clientes: ADMIN y CAJERO
                         .requestMatchers("/api/cliente/**").hasAnyRole("ADMIN", "CAJERO")
+                        // Reportes de costos y utilidad solo ADMIN (RN-44)
+                        .requestMatchers("/api/reporte/utilidad-**", "/api/reporte/valor-inventario").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

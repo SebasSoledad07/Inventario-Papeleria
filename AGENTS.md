@@ -10,18 +10,18 @@ API REST para inventario y ventas de papelería en Colombia (COP). Backend monol
 | 2. Catálogo | ✅ Backend completo: `producto` (CRUD + activar/inactivar, historial de precios, búsqueda `unaccent`+`pg_trgm` RF-06), `codigo` (normalización RN-14, EAN-13 RN-15, lector ZXing RF-11/12, etiquetas RF-04), `catalogo` (Open Products Facts, falla suave RN-16). Endpoints `POST /api/codigos/decodificar`, `GET /api/codigos/{codigo}/etiqueta`. |
 | 3. Inventario | ✅ Completa: `InventarioService` (`descontar`/`devolver`/`ajustar*`, kárdex, stock no negativo vía `UPDATE ... WHERE stock >= :cantidad`), `CalculadoraCostoPromedio`, `CompraService` (RF-14/15, costo promedio ponderado RN-23, rechaza factura repetida), `ConteoFisicoService` (RF-18, RN-46), `CompraController`, kárdex, conteo físico. |
 | 4. Caja | ✅ Backend completo: dominio (`Venta`, `DetalleVenta`, `PagoVenta`, `Caja`, `Consecutivo`), `ConsecutivoService` (RN-31), `CalculadoraVenta`, `VentaService` (confirmar/anular, IVA RN-11, descuentos RN-33/D-1, pagos RN-34/35, stock RN-37), `CajaService` (apertura/cierre/cuadre RN-40/41/42), `TirillaService` (HTML @page D-5), `VentaController`, `CajaController`, repos de venta/caja/pagos, `ClienteService`/controller. |
-| 5. Reportes | ✖ No iniciada: no existe módulo `reporte`. |
+| 5. Reportes | ✅ Backend completo: módulo `reporte` con `JdbcClient` (stock bajo/agotados/por agotarse/pedido por proveedor, ventas por periodo, productos más vendidos/sin movimiento, utilidad por periodo/categoría/producto, valor inventario, cierres de caja, panel) + exportación Excel/PDF (OpenPDF `org.openpdf`). |
 
 - 92 clases en `src/main/java`; 12 archivos de test (38 `@Test` + 1 `@ParameterizedTest`). 7 commits; el último añade gestión de producto (actualizar/activar/inactivar) y roles de seguridad.
 - `V1__esquema_inicial.sql` crea **todo** el esquema (todas las fases) + config inicial + `f_unaccent`. `V2__vista_estado_stock.sql`. **No hay V3+**.
 - Paquete base: `com.soledad.inventariopapeleria` (no `com.papeleria.inventario`; `docs/04` aún muestra la ruta vieja).
 
-## Qué falta por desarrollar (orden obligatorio docs/07)
+## Qué falta por desarrollar
 
-1. **Fase 5 – Reportes (RF-30 a RF-42):** módulo `reporte` con `JdbcClient` y las consultas de `docs/consultas-sql.md`, exportación Excel/PDF (OpenPDF: paquete `org.openpdf`), panel. Costos y utilidad solo `ADMIN` (RN-44).
-2. **Transversal:** paquete `integracion` con Testcontainers aún no existe pese a estar en el pom; pruebas con tablas de casos para IVA (RN-11), costo promedio (RN-23), consecutivo (RN-31) y descuentos (D-1).
-3. **Decisiones pendientes:** D-1, D-2, D-4 (implementación provisional en `AdminInicialRunner`), D-5, D-6. D-3 resuelta → RN-46. (D-1, D-2, D-5 se implementaron siguiendo la propuesta; marcar `// PENDIENTE-DECISION-n` hasta confirmación.)
-4. **Desviación a resolver:** `ProductoService.crear` asigna `stockInicial` directamente (escribe stock desde `producto`); decidir si debe pasar por `InventarioService` (RN-20).
+1. **Transversal:** paquete `integracion` con Testcontainers aún no existe pese a estar en el pom; pruebas con tablas de casos para IVA (RN-11), costo promedio (RN-23), consecutivo (RN-31) y descuentos (D-1).
+2. **Decisiones pendientes:** D-1, D-2, D-4 (implementación provisional en `AdminInicialRunner`), D-5, D-6. D-3 resuelta → RN-46. (D-1, D-2, D-5 se implementaron siguiendo la propuesta; marcar `// PENDIENTE-DECISION-n` hasta confirmación.)
+3. **Desviación a resolver:** `ProductoService.crear` asigna `stockInicial` directamente (escribe stock desde `producto`); decidir si debe pasar por `InventarioService` (RN-20).
+4. **Fase 6 (futura):** facturación electrónica DIAN (fuera de v1).
 
 ## Comandos (Windows, usa el wrapper)
 
@@ -77,7 +77,7 @@ Orden obligatorio. Al terminar cada fase: criterios de aceptación de `docs/07` 
 2. Fase 2 – Catálogo: ✅ backend completo (frontend por separado RF-09/10/13).
 3. Fase 3 – Inventario: ✅ completo.
 4. Fase 4 – Caja: ✅ backend completo (ver tabla de estado).
-5. Fase 5 – Reportes: ✖ no iniciada.
+5. Fase 5 – Reportes: ✅ backend completo (módulo `reporte` + exportación).
 6. Fase 6 (futura): facturación electrónica DIAN (fuera de v1).
 
 ## Pruebas
